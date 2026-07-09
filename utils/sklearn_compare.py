@@ -1,6 +1,10 @@
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, r2_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge, Lasso
 from sklearn.ensemble import (
@@ -14,7 +18,30 @@ from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
+def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
+    numeric_cols = X.select_dtypes(include="number").columns.tolist()
+    categorical_cols = X.select_dtypes(exclude="number").columns.tolist()
+
+    numeric_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+    ])
+    categorical_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+    ])
+
+    transformers = []
+    if numeric_cols:
+        transformers.append(("num", numeric_pipeline, numeric_cols))
+    if categorical_cols:
+        transformers.append(("cat", categorical_pipeline, categorical_cols))
+
+    return ColumnTransformer(transformers)
+
 def run_sklearn_compare(df: pd.DataFrame, target: str):
+    df = df.dropna(subset=[target])
+
     X = df.drop(columns=[target])
     y = df[target]
 
@@ -48,12 +75,16 @@ def run_sklearn_compare(df: pd.DataFrame, target: str):
 
     results = []
     best_model = None
-    best_score = -999
+    best_score = -float("inf")
 
     for name, model in models.items():
         try:
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
+            pipeline = Pipeline([
+                ("preprocessor", build_preprocessor(X_train)),
+                ("model", model),
+            ])
+            pipeline.fit(X_train, y_train)
+            preds = pipeline.predict(X_test)
 
             score = (
                 accuracy_score(y_test, preds)
@@ -65,10 +96,10 @@ def run_sklearn_compare(df: pd.DataFrame, target: str):
 
             if score > best_score:
                 best_score = score
-                best_model = model
+                best_model = pipeline
 
-        except Exception:
-            results.append({"Model": name, "Score": None})
+        except Exception as e:
+            results.append({"Model": name, "Score": None, "Error": str(e)})
 
     return (
         pd.DataFrame(results).sort_values("Score", ascending=False),

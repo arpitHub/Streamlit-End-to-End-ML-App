@@ -42,6 +42,15 @@ else:
         state["dataset_name"] = file.name
 
 if df is not None:
+    if state.get("dataset_name") != state.get("_last_loaded_dataset_name"):
+        state["target_column"] = None
+        state["sklearn_results"] = None
+        state["best_model"] = None
+        state["X_test"] = None
+        state["y_test"] = None
+        state["predictions"] = None
+        state["_last_loaded_dataset_name"] = state.get("dataset_name")
+
     state["df"] = df
 
     st.subheader("Preview")
@@ -51,6 +60,6 @@ if df is not None:
     st.write(df.shape)
 
     st.subheader("Column Types")
-    st.write(df.dtypes)
+    st.write(df.dtypes.astype(str))
 else:
     st.info("Please select or upload a dataset.")

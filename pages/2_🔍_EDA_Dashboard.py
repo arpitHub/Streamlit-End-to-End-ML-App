@@ -1,6 +1,6 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from ydata_profiling import ProfileReport
-from streamlit_pandas_profiling import st_profile_report
 
 from utils.state import get_state
 from utils.eda_tools import get_basic_stats, get_corr_heatmap
@@ -28,5 +28,6 @@ with tab2:
 
 with tab3:
     if st.button("Generate Profiling Report"):
-        profile = ProfileReport(df, explorative=True)
-        st_profile_report(profile)
+        with st.spinner("Generating profiling report..."):
+            profile = ProfileReport(df, explorative=True)
+            components.html(profile.to_html(), height=1000, scrolling=True)

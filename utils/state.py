@@ -11,6 +11,8 @@ def get_state():
             "X_test": None,
             "y_test": None,
             "predictions": None,
+            "is_time_series": False,
+            "ts_result": None,
             "_last_loaded_dataset_name": None,
         }
     return st.session_state.app_state

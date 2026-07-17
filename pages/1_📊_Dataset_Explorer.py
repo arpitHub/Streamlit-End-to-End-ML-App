@@ -7,6 +7,7 @@ from utils.data_loader import (
     load_uploaded_file,
 )
 from utils.state import get_state
+from utils.timeseries_tools import is_time_series_dataset
 
 st.title("📊 Dataset Explorer")
 
@@ -49,6 +50,8 @@ if df is not None:
         state["X_test"] = None
         state["y_test"] = None
         state["predictions"] = None
+        state["is_time_series"] = False
+        state["ts_result"] = None
         state["_last_loaded_dataset_name"] = state.get("dataset_name")
 
     state["df"] = df
@@ -61,5 +64,11 @@ if df is not None:
 
     st.subheader("Column Types")
     st.write(df.dtypes.astype(str))
+
+    if is_time_series_dataset(df):
+        st.info(
+            "This looks like a time series dataset (it has a 'time' column). "
+            "Head to **Model Builder** to run a time series forecast on it."
+        )
 else:
     st.info("Please select or upload a dataset.")

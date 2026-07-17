@@ -7,6 +7,7 @@ from utils.data_loader import (
     load_uploaded_file,
 )
 from utils.state import get_state
+from utils.timeseries_tools import is_time_series_dataset
 
 st.title("📊 Dataset Explorer")
 
@@ -38,10 +39,30 @@ elif source == "pydataset library":
 else:
     file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
     if file:
-        df = load_uploaded_file(file)
-        state["dataset_name"] = file.name
+        try:
+            df = load_uploaded_file(file)
+            if df.shape[1] == 0:
+                st.sidebar.error("That file has no columns — is it really a CSV?")
+                df = None
+            else:
+                state["dataset_name"] = file.name
+        except Exception as e:
+            st.sidebar.error(f"Couldn't read that file as a CSV: {e}")
 
 if df is not None:
+    if state.get("dataset_name") != state.get("_last_loaded_dataset_name"):
+        state["target_column"] = None
+        state["sklearn_results"] = None
+        state["best_model"] = None
+        state["X_test"] = None
+        state["y_test"] = None
+        state["predictions"] = None
+        state["problem_type"] = None
+        state["perm_importance"] = None
+        state["is_time_series"] = False
+        state["ts_result"] = None
+        state["_last_loaded_dataset_name"] = state.get("dataset_name")
+
     state["df"] = df
 
     st.subheader("Preview")
@@ -51,6 +72,12 @@ if df is not None:
     st.write(df.shape)
 
     st.subheader("Column Types")
-    st.write(df.dtypes)
+    st.write(df.dtypes.astype(str))
+
+    if is_time_series_dataset(df):
+        st.info(
+            "This looks like a time series dataset (it has a 'time' column). "
+            "Head to **Model Builder** to run a time series forecast on it."
+        )
 else:
     st.info("Please select or upload a dataset.")

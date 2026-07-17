@@ -23,7 +23,7 @@ def list_pydatasets():
     """
     try:
         df = pydata("datasets")  # official way to list datasets
-        return sorted(df["dataset"].tolist())
+        return sorted(df["Item"].tolist())
     except Exception:
         return []
 

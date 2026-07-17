@@ -32,7 +32,7 @@ if state.get("is_time_series") and state.get("ts_result") is not None:
         line=dict(color="firebrick", dash="dash"),
     ))
     fig.update_layout(xaxis_title=time_col, yaxis_title=value_col, legend=dict(orientation="h"))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
     st.subheader("Backtest: Actual vs Predicted")
     st.dataframe(test_preds)

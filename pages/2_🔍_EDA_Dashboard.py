@@ -115,7 +115,18 @@ with tab_profile:
     st.caption(
         "Generates a complete ydata-profiling report. Can take a while on large datasets."
     )
+    PROFILE_ROW_LIMIT = 20_000
+    profile_df = df
+    if len(df) > PROFILE_ROW_LIMIT:
+        st.warning(
+            f"This dataset has {len(df):,} rows. Profiling the full thing can be slow "
+            f"and memory-heavy, so it'll run on a random sample of {PROFILE_ROW_LIMIT:,} rows."
+        )
+        use_full = st.checkbox("Use the full dataset instead (may be slow)", value=False)
+        if not use_full:
+            profile_df = df.sample(PROFILE_ROW_LIMIT, random_state=42)
+
     if st.button("Generate Profiling Report"):
         with st.spinner("Generating profiling report..."):
-            profile = ProfileReport(df, explorative=True)
+            profile = ProfileReport(profile_df, explorative=True)
             components.html(profile.to_html(), height=1000, scrolling=True)

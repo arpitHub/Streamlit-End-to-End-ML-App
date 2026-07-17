@@ -1,6 +1,7 @@
+import pandas as pd
 import streamlit as st
 from utils.state import get_state
-from utils.sklearn_compare import run_sklearn_compare
+from utils.sklearn_compare import detect_problem_type, run_sklearn_compare
 from utils.timeseries_tools import (
     detect_time_column,
     default_value_column,
@@ -8,7 +9,7 @@ from utils.timeseries_tools import (
     run_time_series_forecast,
 )
 
-st.title("🤖 Model Builder (Light Mode Only)")
+st.title("🤖 Model Builder")
 
 state = get_state()
 df = state.get("df")
@@ -65,6 +66,25 @@ else:
     target = st.selectbox("Select target column", df.columns)
     state["target_column"] = target
 
+    target_is_numeric = pd.api.types.is_numeric_dtype(df[target])
+    auto_type = detect_problem_type(df[target].dropna())
+    type_options = ["Auto-detect", "Classification"] + (["Regression"] if target_is_numeric else [])
+    type_choice = st.selectbox(
+        "Problem type",
+        type_options,
+        help=f"Auto-detect currently picks **{auto_type}** for this column "
+        f"({df[target].nunique()} unique values).",
+    )
+    problem_type = {"Auto-detect": "auto", "Classification": "classification", "Regression": "regression"}[type_choice]
+    target_nunique = df[target].nunique()
+    if not target_is_numeric and type_choice == "Auto-detect":
+        st.caption("Regression isn't offered — the target column isn't numeric.")
+    elif type_choice == "Classification" and (target_nunique > 50 or target_nunique > 0.5 * len(df)):
+        st.warning(
+            f"'{target}' has {target_nunique} distinct values across {len(df)} rows — "
+            "classification may perform poorly with this many classes relative to the data size."
+        )
+
     with st.expander("Advanced options"):
         cv_folds = st.slider("Cross-validation folds", 3, 10, 5)
         tune = st.checkbox(
@@ -75,14 +95,14 @@ else:
 
     if st.button("Run Model Comparison"):
         with st.spinner("Training models..."):
-            results, best_model, X_test, y_test, problem_type = run_sklearn_compare(
-                df, target, cv_folds=cv_folds, tune=tune
+            results, best_model, X_test, y_test, resolved_type = run_sklearn_compare(
+                df, target, cv_folds=cv_folds, tune=tune, problem_type=problem_type
             )
             state["sklearn_results"] = results
             state["best_model"] = best_model
             state["X_test"] = X_test
             state["y_test"] = y_test
-            state["problem_type"] = problem_type
+            state["problem_type"] = resolved_type
             state["perm_importance"] = None
             state["is_time_series"] = False
             state["ts_result"] = None

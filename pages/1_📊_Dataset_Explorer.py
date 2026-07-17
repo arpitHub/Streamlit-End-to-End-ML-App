@@ -39,8 +39,15 @@ elif source == "pydataset library":
 else:
     file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
     if file:
-        df = load_uploaded_file(file)
-        state["dataset_name"] = file.name
+        try:
+            df = load_uploaded_file(file)
+            if df.shape[1] == 0:
+                st.sidebar.error("That file has no columns — is it really a CSV?")
+                df = None
+            else:
+                state["dataset_name"] = file.name
+        except Exception as e:
+            st.sidebar.error(f"Couldn't read that file as a CSV: {e}")
 
 if df is not None:
     if state.get("dataset_name") != state.get("_last_loaded_dataset_name"):

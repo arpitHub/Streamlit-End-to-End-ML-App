@@ -77,18 +77,31 @@ def _make_cv(y_train, is_classification: bool, cv_folds: int):
         n_splits=max(2, min(cv_folds, len(y_train) // 2)), shuffle=True, random_state=42
     )
 
-def run_sklearn_compare(df: pd.DataFrame, target: str, cv_folds: int = 5, tune: bool = False):
+def detect_problem_type(y: pd.Series) -> str:
+    is_classification = (y.dtype == "object") or (y.dtype == "bool") or (y.nunique() < 20)
+    return "classification" if is_classification else "regression"
+
+def run_sklearn_compare(
+    df: pd.DataFrame, target: str, cv_folds: int = 5, tune: bool = False, problem_type: str = "auto"
+):
     df = df.dropna(subset=[target])
 
     X = df.drop(columns=[target])
     y = df[target]
 
+    if problem_type not in ("classification", "regression"):
+        problem_type = detect_problem_type(y)
+    is_classification = problem_type == "classification"
+
+    if is_classification and pd.api.types.is_float_dtype(y):
+        # sklearn's classifiers refuse a float target that "looks continuous" even
+        # when explicitly asked for classification (e.g. a user override) — string
+        # labels sidestep that check and treat each distinct value as its own class.
+        y = y.astype(str)
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
-
-    is_classification = (y.dtype == "object") or (y.nunique() < 20)
-    problem_type = "classification" if is_classification else "regression"
 
     if is_classification:
         models = {

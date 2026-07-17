@@ -50,6 +50,8 @@ if df is not None:
         state["X_test"] = None
         state["y_test"] = None
         state["predictions"] = None
+        state["problem_type"] = None
+        state["perm_importance"] = None
         state["is_time_series"] = False
         state["ts_result"] = None
         state["_last_loaded_dataset_name"] = state.get("dataset_name")

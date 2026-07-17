@@ -11,6 +11,8 @@ def get_state():
             "X_test": None,
             "y_test": None,
             "predictions": None,
+            "problem_type": None,
+            "perm_importance": None,
             "is_time_series": False,
             "ts_result": None,
             "_last_loaded_dataset_name": None,

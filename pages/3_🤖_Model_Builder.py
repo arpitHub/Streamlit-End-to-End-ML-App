@@ -65,17 +65,34 @@ else:
     target = st.selectbox("Select target column", df.columns)
     state["target_column"] = target
 
+    with st.expander("Advanced options"):
+        cv_folds = st.slider("Cross-validation folds", 3, 10, 5)
+        tune = st.checkbox(
+            "Hyperparameter tuning (grid search — slower)",
+            value=False,
+            help="Searches a small parameter grid per model instead of using defaults.",
+        )
+
     if st.button("Run Model Comparison"):
         with st.spinner("Training models..."):
-            results, best_model, X_test, y_test = run_sklearn_compare(df, target)
+            results, best_model, X_test, y_test, problem_type = run_sklearn_compare(
+                df, target, cv_folds=cv_folds, tune=tune
+            )
             state["sklearn_results"] = results
             state["best_model"] = best_model
             state["X_test"] = X_test
             state["y_test"] = y_test
+            state["problem_type"] = problem_type
+            state["perm_importance"] = None
             state["is_time_series"] = False
             state["ts_result"] = None
 
     if state.get("sklearn_results") is not None:
         st.subheader("Model Leaderboard")
-        st.dataframe(state["sklearn_results"])
+        st.caption(
+            "Models are ranked by mean cross-validation score on the training split "
+            "(accuracy for classification, R² for regression). "
+            "Test Score is measured on a 20% holdout the models never saw."
+        )
+        st.dataframe(state["sklearn_results"], hide_index=True)
         st.success("Best model saved. Go to Model Results page.")
